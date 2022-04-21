@@ -74,4 +74,6 @@ static void	_db_writeidx(DB *, const char *, off_t, int, off_t);
 static void 	_db_writeptr(DB *, off_t, off_t);
 
 
-
+/* open or create a database, same arguments as open(2)	*/
+DBHANDLE
+db_open(
