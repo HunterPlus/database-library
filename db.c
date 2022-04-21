@@ -24,3 +24,37 @@
 
 typedef unsigned long DBHASH;	/* hash value */
 typedef unsigned long COUNT;	/* unsigned counter */
+
+/*
+ * library's private representation of the database.
+ */
+typedef struct {
+	int	idxfd;		/* fd for index file */
+	int	datfd;		/* fd for data file */
+	char	*idxbuf;	/* malloc'ed buffer for index record */
+	char	*datbuf;	/* malloc'ed buffer for data record */
+	char	*name;		/* name db was opened under */
+	off_t	idxoff;		/* offset in idx file of index record */
+				/* key is at (idxoff + PTR_SZ + IDXLEN_SZ) */
+	size_t	idxlen;		/* length of index record 	*/
+				/* excludes IDXLEN_SZ bytes at front of record	*/
+				/* incudes newline at end of index record	*/
+	off_t	datoff;		/* offset in data file of data record */
+	size_t	datlen;		/* length of data record include newline at end */
+	off_t	ptrval;		/* contents of chain ptr in index record */
+	off_t	ptroff;		/* chain ptr offset pointing to this index record */
+	off_t	chainoff;	/* offset of hash chain for this index record */
+	off_t	hashoff;	/* offset in index file of hash table */
+	DBHASH	nhash;		/* current hash table size */
+	
+	COUNT	cnt_delok;	/* delete OK */
+	COUNT	cnt_delerr;	/* delete error */
+	COUNT	cnt_fetchok;	/* fetch OK */
+	COUNT 	cnt_fetcherr;	/* fetch error */
+	COUNT	cnt_nextrec;	/* next record */
+	COUNT	cnt_stor1;	/* store: DB_INSERT, no empty, appended */
+	COUNT	cnt_stor2;	/* store: DB_INSERT, found empty, reused */
+	COUNT	cnt_stor3;	/* store: DB_REPLACE, diff len; appended */
+	COUNT	cnt_stor4;	/* store: DB_REPLACE, same len; overwrote */
+	COUNT	cnt_storerr;	/* store error */
+} DB;
