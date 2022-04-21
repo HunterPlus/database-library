@@ -76,4 +76,7 @@ static void 	_db_writeptr(DB *, off_t, off_t);
 
 /* open or create a database, same arguments as open(2)	*/
 DBHANDLE
-db_open(
+db_open(const char *pathname, int oflag, ...)
+{
+}
+
