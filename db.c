@@ -116,6 +116,10 @@ db_open(const char *pathname, int oflag, ...)
 		_db_free(db);
 		return NULL;
 	}
+	/*
+	?
+	?
+	*/
 }
 /* 
  * allocate & initialize a DB structure and its buffers 
