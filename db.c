@@ -74,12 +74,16 @@ static void	_db_writeidx(DB *, const char *, off_t, int, off_t);
 static void 	_db_writeptr(DB *, off_t, off_t);
 
 
-/* open or create a database, same arguments as open(2)	*/
+/* 
+ * open or create a database, same arguments as open(2)	
+ */
 DBHANDLE
 db_open(const char *pathname, int oflag, ...)
 {
 }
-/* allocate & initialize a DB structure and its buffers */
+/* 
+ * allocate & initialize a DB structure and its buffers 
+ */
 static DB *
 _db_alloc(int namelen)
 {
@@ -100,13 +104,16 @@ _db_alloc(int namelen)
 	
 	return (db);	
 }
-/* relinquish access to the database. */
+/* 
+ * relinquish access to the database. 
+ */
 void 
 db_close(DBHANDLE h)
 {
 	_db_free((DB *) h);	/* close fds, free buffers & struct */
 }
-/* free up a DB structure, and all the malloc'ed buffers it may point to.
+/* 
+ * free up a DB structure, and all the malloc'ed buffers it may point to.
  * also close the descriptors it still open.
  */
 static void
@@ -124,4 +131,33 @@ _db_free(DB *db)
 		free(db->name);
 	
 	free(db);
+}
+/*
+ * fetch a record. return a pointer to the null-terminated data.
+ */
+char *
+db_fetch(DBHANDLE h, const char *key)
+{
+}
+/*
+ * find the specified record. call by db_delete, db_fetch, and db_store.
+ * return with the hash chain locked.
+ */
+static int
+_db_find_and_lock(DB *db, const char *key, int writelock)
+{
+}
+/*
+ * calculate the hash value for a key.
+ */
+static DBHASH
+_db_hash(DB *db, const char *key)
+{
+	DBHASH	hval = 0;
+	char	c;
+	int	i;
+	
+	for (i = 1; (c = *key++) != 0; i++)
+		hval += c * i;		/* ascii char times its 1-based index */
+	return (hval % db->nhash);
 }
