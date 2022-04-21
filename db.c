@@ -58,3 +58,20 @@ typedef struct {
 	COUNT	cnt_stor4;	/* store: DB_REPLACE, same len; overwrote */
 	COUNT	cnt_storerr;	/* store error */
 } DB;
+
+/* internal functions */
+static DB	*_db_alloc(int);
+static void	_db_dodelete(DB *);
+static int	_db_find_and_lock(DB *, const char *, int);
+static int 	_db_findfree(DB *, int, int);
+static void	_db_free(DB *);
+static DBHASH	_db_hash(DB *, const char *);
+static char	*_db_readdat(DB *);
+static off_t	_db_readidx(DB *, off_t);
+static off_t	_db_readptr(DB *, off_t);
+static void 	_db_writedat(DB *, const char *, off_t, int);
+static void	_db_writeidx(DB *, const char *, off_t, int, off_t);
+static void 	_db_writeptr(DB *, off_t, off_t);
+
+
+
