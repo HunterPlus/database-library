@@ -80,6 +80,42 @@ static void 	_db_writeptr(DB *, off_t, off_t);
 DBHANDLE
 db_open(const char *pathname, int oflag, ...)
 {
+	DB	*db;
+	int	len, mode;
+	size_t	i;
+	char	asciiptr[PTR_SZ + 1],
+		hash[(NHASH_DEF + 1) * PTR_SZ + 2];	/* +2 for newline and null */
+	struct stat statbuff;
+	
+	/* allocate a DB structure, and the buffer it needs */
+	len = strlen(pathname);
+	if ((db = _db_alloc(len)) == NULL)
+		err_dump("dp_open: _db_alloc error for DB");
+	db->nhash = NHASH_DEF;		/* hash table size */
+	db->hashoff = HASH_OFF;		/* offset in index file of hash table */
+	strcpy(db->name, pathname);
+	strcat(db->name, ".idx");
+	
+	if (oflag & O_CREAT) {
+		va_list	ap;
+		
+		va_start(ap, oflag);
+		mode = va_arg(ap, int);
+		va_end(ap);
+		
+		/* open index file and data file */
+		db->idxfd = open(db->name, oflag, mode);
+		strcpy(db->name + len, ".dat");
+		db->datfd = open(db->name, oflag, mode);
+	} else {	/* open index file and data file */
+		db->idxfd = open(db->name, oflag);
+		strcpy(db->name + len, ".dat");
+		db->datfd = open(db->name, oflag);
+	}
+	if (db->idxfd < 0 || db->datfd < 0) {
+		_db_free(db);
+		return NULL;
+	}
 }
 /* 
  * allocate & initialize a DB structure and its buffers 
