@@ -347,3 +347,14 @@ db_rewind(DBHANDLE h)
 		err_dump("db_rewind: lseek error");	
 }
 
+/*
+ * return the next sequential record.
+ * we just step our way through the index file, ignoring deleted records.
+ * db_rewind() must be called before this function is called the first time.
+ */
+char *
+db_nextrec(DBHANDLE h, char *key)
+{
+	
+}
+
