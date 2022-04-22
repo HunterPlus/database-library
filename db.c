@@ -266,3 +266,35 @@ _db_dodelete(DB *db)
 {
 	
 }
+
+/*
+ * write a data record.
+ * called by _db_dodelete() (to write the record with blanks) and db_store().
+ */
+static void
+_db_writedat(DB *db, const char *data, off_t offset, int whence)
+{
+	
+}
+
+/*
+ * write an index record.
+ * _db_wrtedat() is called before this function to set the datoff and datlen 
+ * in the DB structure, which we need to write the index record.
+ */
+static void
+_db_writeidx(DB *db, const char *key, off_t offset, int whence, off_t ptrval)
+{
+	
+}
+
+/*
+ * write a chain ptr field somewhere in the index file:
+ * the free list, the hash table, or in an index record.
+ */
+static void
+_db_writeptr(DB *db, off_t offset, off_t ptrval)
+{
+	
+}
+
