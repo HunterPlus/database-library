@@ -201,3 +201,19 @@ _db_hash(DB *db, const char *key)
 		hval += c * i;		/* ascii char times its 1-based index */
 	return (hval % db->nhash);
 }
+/*
+ * read a chain ptr field frome anywhere in the index file:
+ * the free list pointer, a hash table chain ptr, or an index record chain ptr.
+ */
+static off_t
+_db_readptr(DB *db, off_t offset)
+{
+	char	asciiptr[PTR_SZ + 1];
+	
+	if (lseek(db->idxfd, 0, SEEK_SET) == -1)
+		err_dump("_db_readptr: lseek error to ptr field");
+	if (read(db->idxfd, asciiptr, PTR_SZ) != PTR_SZ)
+		err_dump("_db_readptr: read error of ptr field");
+	asciiptr[PTR_SZ] = 0;
+	return atol(asciiptr);
+}
