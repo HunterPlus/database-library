@@ -307,3 +307,43 @@ _db_writeptr(DB *db, off_t offset, off_t ptrval)
 		err_dump("_db_writeptr: write error of ptr field");
 }
 
+/*
+ * store a record in the database.
+ * return 0 if OK, 1 if record exists and DB_INSERT specified, -1 on error.
+ */
+int
+db_store(DBHANDLE h, const char *key, const char *data, int flag)
+{
+	
+}
+
+/*
+ * try to find a free index record and accompanying data record
+ * of the correct sizes. We'are only called by db_store().
+ */
+static int
+_db_findfree(DB *db, int keylen, int datlen)
+{
+	
+}
+
+/*
+ * rewind the index file for db_nextrec.
+ * automatically called by db_open().
+ * must be called before first db_nextrec().
+ */
+void
+db_rewind(DBHANDLE h)
+{
+	DB	*db = h;
+	off_t	offset;
+	
+	offset = (db->nhash + 1) * PTR_SZ;	/* +1 for free list ptr */
+	
+	/* we are just setting the file offset for this process 
+	   to the start of the index records; no need to lock.
+	   +1 below for newline at end of the hash table.	*/
+	if ((db->idxoff = lseek(db->idxfd, offset + 1, SEEK_SET)) == -1)
+		err_dump("db_rewind: lseek error");	
+}
+
