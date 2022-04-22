@@ -295,6 +295,15 @@ _db_writeidx(DB *db, const char *key, off_t offset, int whence, off_t ptrval)
 static void
 _db_writeptr(DB *db, off_t offset, off_t ptrval)
 {
+	char	asciiptr[PTR_SZ + 1];
 	
+	if (ptrval < 0 || ptrval > PTR_MAX)
+		err_quit("_db_writeptr: invalid ptr: %ld", ptrval);
+	sprintf(asciiptr, "%*ld", PTR_SZ, ptrval);
+	
+	if (lseek(db->idxfd, offset, SEEK_SET) == -1)
+		err_dump("_db_writeptr: lseek error to ptr field");
+	if (write(db->idxfd, asciiptr, PTR_SZ) != PTR_SZ)
+		err_dump("_db_writeptr: write error of ptr field");
 }
 
