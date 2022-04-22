@@ -217,3 +217,33 @@ _db_readptr(DB *db, off_t offset)
 	asciiptr[PTR_SZ] = 0;
 	return atol(asciiptr);
 }
+
+/*
+ * read the next index record.
+ * we start the specified offset in the index file. we read the index record into db->idxbuf
+ * and replace the separators with null('\0') bytes. if all is OK we set db->datoff and db->datlen
+ * to the offset and the length of the corresponding data record in the data file.
+ */
+static off_t
+_db_readidx(DB *db, off_t offset)
+{
+	
+}
+
+/*
+ * read the current data record into the data buffer.
+ * returns a pointer to the null terminated data buffer.
+ */
+static char *
+_db_readdat(DB *db)
+{
+	if (lseek(db->datfd, db->datoff, SEEK_SET) == -1)
+		err_dump("_db_readdat: lseek error");
+	if (read(db->datfd, db->datbuf, db->datlen) != db->datlen)
+		err_dump("_db_readdat: read error");
+	if (db->datbuf[db->datlen - 1] != NEWLINE)	/* sanity check */
+		err_dump("_db_readdat: missing newline");
+	db->datbuf[db->datlen - 1] = 0;		/* replace newline with null */
+	
+	return db->datbuf;
+}
