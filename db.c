@@ -247,3 +247,22 @@ _db_readdat(DB *db)
 	
 	return db->datbuf;
 }
+
+/*
+ * delete the specified record.
+ */
+int db_delete(DBHANDLE h, const char *key)
+{
+	
+}
+
+/*
+ * delete the current record specified by the DB structure.
+ * this function is called by db_delete() and db_store(),
+ * after the record has been located by _db_find_and_lock().
+ */
+static void
+_db_dodelete(DB *db)
+{
+	
+}
