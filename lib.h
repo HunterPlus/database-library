@@ -8,6 +8,14 @@
 #include <signal.h>
 #include <sys/wait.h>
 
+#define read_lock(fd, offset, whence, len)	\
+		lock_reg((fd), F_SETLK, F_RDLCK, (offset), (whence), (len))
+#define readw_lock(fd, offset, whence, len)	\
+		lock_reg((fd), F_SETLKW, F_RDLCK, (offset), (whence), (len))
+#define write_lock(fd, offset, whence, len)	\
+		lock_reg((fd), F_SETLK, F_WRLCK, (offset), (whence), (len))
+#define writew_lock(fd, offset, whence, len)	\
+
 #define MAXLINE         1024
 
 /* error ****************************************************************
@@ -18,6 +26,11 @@ void err_sys(const char *fmt, ...);
 void err_dump(const char *fmt, ...);
 void err_msg(const char *fmt, ...);
 void err_quit(const char *fmt, ...);
+
+/* file lock ******************************************************************
+ * <fcntl.h>
+ */
+int lock_reg(int fd, int cmd, int type, off_t offset, int whence, off_t len);
 
 /* wrap unix/linux ************************************************************
  * <stdlib.h> <fcntl.h> <signal.h> <unistd.h>
