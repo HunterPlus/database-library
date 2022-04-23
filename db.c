@@ -208,6 +208,38 @@ db_fetch(DBHANDLE h, const char *key)
 static int
 _db_find_and_lock(DB *db, const char *key, int writelock)
 {
+	off_t	offset, nextoffset;
+	
+	/* calculate the hash value for this key, then calculate the byte offset 
+	   of corresponding chain ptr in hash table.
+	   this is where our search starts. first we calculate the offset in the 
+	   hash table for this key.	*/
+	db->chainoff = (_db_hash(db, key) * PTR_SZ) + db->hashoff;
+	db->ptroff = db->chainoff;
+	
+	/* we lock the hash chain here. the caller must un_lock it when done.
+	   note we lock and unlock only the first byte.		*/
+	if (writelock) {
+		if (writew_lock(db->idxfd, db->chainoff, SEEK_SET, 1) < 0)
+			err_dump("_db_find_and_lock: writew_lock error");
+	} else {
+		if (readw_lock(db->idxfd, db->chainoff, SEEK_SET, 1) < 0)
+			err_dump("_db_find_and_lock: readw_lock error");
+	}
+	
+	/* get the offset in the index file of first record on 
+	   the hash chain (can be 0).		*/
+	offset = _db_readptr(db->idxfd, db->ptroff);
+	while (offset != 0) {
+		nextoffset = _db_readidx(db->idxfd, offset);
+		if (strcmp(db->idxbuf, key) == 0)
+			break;		/* found a match */
+		db->ptroff = offset;	/* offset of this (unequal) record */
+		offset = nextoffset;	/* next one to compare */
+	}
+	
+	/* offset == 0 on error (record not found) */
+	return (offset == 0 ? -1 : 0);
 }
 /*
  * calculate the hash value for a key.
