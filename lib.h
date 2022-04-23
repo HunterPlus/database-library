@@ -7,9 +7,6 @@
 #include <errno.h>
 #include <signal.h>
 #include <sys/wait.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-
 
 #define MAXLINE         1024
 
