@@ -22,15 +22,6 @@ void err_dump(const char *fmt, ...);
 void err_msg(const char *fmt, ...);
 void err_quit(const char *fmt, ...);
 
-/* wrap socket ********************************************************* 
- * <sys/socket.h>
-*/
-int Socket(int family, int type, int protocol);
-void Bind(int fd, const struct sockaddr *sa, socklen_t salen);
-void Listen(int fd, int backlog);
-int Accept(int fd, struct sockaddr *sa, socklen_t *salenptr);
-void Connect(int fd, const struct sockaddr *sa, socklen_t salen);
-
 /* wrap unix/linux ************************************************************
  * <stdlib.h> <fcntl.h> <signal.h> <unistd.h>
 */
