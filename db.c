@@ -200,6 +200,21 @@ _db_free(DB *db)
 char *
 db_fetch(DBHANDLE h, const char *key)
 {
+	DB	*db = h;
+	char	*ptr;
+	
+	if (_db_find_and_lock(db, key, 0) < 0) {
+		ptr = NULL;		/* error, record not found */
+		db->cnt_fetcherr++;
+	} else {
+		ptr = _db_readdat(db);	/* return pointer to data */
+		db->cnt_fetchok++;
+	}
+	
+	/* unlock the hash chain that _db_find_and_lock locked. */
+	if (un_lock(db->idxfd, db->chainoff, SEEK_SET, 1) < 0)
+		err_dump("db_fetch: un_lock error");
+	return (ptr);
 }
 /*
  * find the specified record. call by db_delete, db_fetch, and db_store.
