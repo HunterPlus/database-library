@@ -74,6 +74,21 @@ err_quit(const char *fmt, ...)
         exit(1);
 }
 
+/* file lock ******************************************************************
+ * <fcntl.h>
+ */
+int
+lock_reg(int fd, int cmd, int type, off_t offset, int whence, off_t len)
+{
+        struct flock lock;
+        
+        lock.l_type = type;             /* F_RDLCK, F_WRLCK, F_UNLCK */
+        lock.l_start = offset;          /* byte offset, relative to l_whence */
+        lock.l_whence = whence;         /* SEEK_SET, SEEK_CURR, SEEK_END */
+        lock.l_len = len;               /* #bytes (0 means EOF) */
+        
+        return (fcntl(fd, cmd, &lock));        
+}
 
 /* wrap unix/linux *********************************************************************************************
  * <stdlib.h> <fcntl.h> <signal.h> <unistd.h>
