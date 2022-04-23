@@ -74,52 +74,6 @@ err_quit(const char *fmt, ...)
         exit(1);
 }
 
-/* wrap socket ******************************************************************************************** 
- * <sys/socket.h>
-*/
-int 
-Socket(int family, int type, int protocol)
-{
-        int     sockfd;
-        if ((sockfd = socket(family, type, protocol)) < 0)
-                err_sys("socket error");
-        return (sockfd);
-}
-void 
-Bind(int fd, const struct sockaddr *sa, socklen_t salen)
-{
-        if (bind(fd, sa, salen) < 0)
-                err_sys("bind error");
-}
-void 
-Listen(int fd, int backlog)
-{
-        char    *ptr;
-
-        if ((ptr = getenv("LISTENQ")) != NULL)
-                backlog = atoi(ptr);
-        if (listen(fd, backlog) < 0)
-                err_sys("listen error");
-}
-int 
-Accept(int fd, struct sockaddr *sa, socklen_t *salenptr)
-{
-        int     n;
-again:
-        if ((n = accept(fd, sa, salenptr)) < 0) {
-                if (errno == ECONNABORTED)
-                        goto again;
-                else
-                        err_sys("accept error");
-        }
-        return (n);             /* accepted connected fd */
-}
-void 
-Connect(int fd, const struct sockaddr *sa, socklen_t salen)
-{
-        if (connect(fd, sa, salen) < 0)
-                err_sys("connect error");
-}
 
 /* wrap unix/linux *********************************************************************************************
  * <stdlib.h> <fcntl.h> <signal.h> <unistd.h>
