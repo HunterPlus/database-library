@@ -116,10 +116,32 @@ db_open(const char *pathname, int oflag, ...)
 		_db_free(db);
 		return NULL;
 	}
-	/*
-	?
-	?
-	*/
+	if ((oflag & (O_CREAT | O_TRUNC)) == (O_CREATE | O_TRUNC)) {
+		/* if the database was created, we have to initialize it.
+		   write lock the entire file so that we can stat it,
+		   check its size, and initialize it, automically.	*/
+		if (writew_lock(db->idxfd, 0, SEEK_SET, 0) < 0)
+			err_dump("db_open: writew_lock error");
+		if (fstat(db->idxfd, db->statbuff) < 0)
+			err_sys("db_open: fstat error");
+		if (statbuff.st_size == 0) {
+			/* we have to build a list of (NHASH_DEF + 1) chain
+			   ptrs with a value of 0. the +1 is for the free
+			   list pointer that precedes the hash table.	*/
+			sprintf(asciiptr, "%*d", PTR_SZ, 0);
+			hash[0] = 0;
+			for (i = 0; i < NHASH_DEF + 1; i++)
+				strcat(hash, asciiptr);
+			strcat(hash, "\n");
+			i = strlen(hash);
+			if (write(db->idxfd, hash, i) != i)
+				err_dump("db_open: index file init write error");			
+		}
+		if (un_lock(db->idxfd, 0, SEEK_SET, 0) < 0)
+			err_dump("db_open: un_lock error");
+	}
+	db_rewind(db);
+	return (db);
 }
 /* 
  * allocate & initialize a DB structure and its buffers 
