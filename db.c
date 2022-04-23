@@ -296,7 +296,61 @@ _db_readptr(DB *db, off_t offset)
 static off_t
 _db_readidx(DB *db, off_t offset)
 {
+	ssize_t	i;
+	char	*ptr1, *ptr2;
+	char	asciiptr[PTR_SZ + 1], asciilen[IDXLEN_SZ + 1];
+	struct iovec iov[2];
 	
+	/* position index file and record the offset. db_nextrec calls us with 
+	   offset = 0, meaning read from current offset.
+	   we still need to call lseek to record the current offset.	*/
+	if ((db->idxoff = lseek(db->idxfd, offset, offset == 0 ? SEEK_CURR : SEEK_SET)) == -1)
+		err_dump("_db_readidx: lseek error");
+	
+	/* read the ascii chain ptr and the length at the front of the index record.
+	   this tells us the remaining size of the index record.	*/
+	iov[0].iov_base = asciiptr;
+	iov[0].iov_len =PTR_SZ;
+	iov[1].iov_base = asciilen;
+	iov[1].iov_len = IDXLEN_SZ;
+	if ((i = readv(db->idxfd, &iov[0], 2)) != PTR_SZ + IDXLEN_SZ) {
+		if (i == 0 && offset == 0)
+			return (-1);		/* EOF for db_nextrec */
+		err_dump("_db_readidx: readv error of index record");
+	}
+	
+	/* this is our return value, always >= 0. */
+	asciiptr[PTR_SZ] = 0;		/* null terminate */
+	db->ptrval = atol(asciiptr);	/* offset of next key in chain */
+	
+	asciilen[IDXLEN_SZ] = 0;	/* null terminate */
+	if ((db->idxlen = atol(asciilen)) < IDXLEN_MIN || db->idxlen > IDXLEN_MAX)
+		err_dump("_db_readidx: invalid length");
+	
+	/* now read the actual index record. we read into the key buffer and
+	   that we malloced when we opened the database. 	*/
+	if ((i = read(db->idxfd, db->idxbuf, db->idxlen)) != db->idxlen)
+		err_dump("_db_readidx: read error of index record");
+	if (db->idxbuf[db->idxlen - 1] != NEWLINE)	/* sanity check */
+		err_dump("_db_readidx: missing newline");
+	db->idxbuf[db->idxlen - 1] = 0;		/* replace newline with null */
+	
+	/* find the separators in the index record. 	*/
+	if ((ptr1 = strchr(db->idxbuf, SEP)) == NULL)
+		err_dump("_db_readidx: missing first separator");
+	*ptr1++ = 0;		/* replace SEP with null */
+	if ((ptr2 = strchr(ptr1, SEP)) == NULL)
+		err_dump("_db_readidx: missing second separator");
+	ptr2++ = 0;		/* replace SEP with null */
+	if (strchr(ptr2, SET) != NULL)
+		err_dump("_db_readidx: too many separators");
+	
+	/* get the starting offset and length of the data record. */
+	if ((db->datoff = atol(ptr1)) < 0)
+		err_dump("_db_readidx: starting offset < 0");
+	if ((db->datlen = atol(ptr2)) <= 0 || db->datlen > DATLEN_MAX)
+		err_dump("_db_readidx: invalid length");
+	return (db->ptrval);	/* return offset of next key in chain */
 }
 
 /*
