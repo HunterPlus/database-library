@@ -430,7 +430,37 @@ _db_writedat(DB *db, const char *data, off_t offset, int whence)
 static void
 _db_writeidx(DB *db, const char *key, off_t offset, int whence, off_t ptrval)
 {
+	struct iovec	iov[2];
+	char		asciiptrlen[PTR_SZ + IDXLEN_SZ + 1];
+	int		len;
 	
+	if ((db->ptrval = ptrval) < 0 || ptrval > PTR_MAX)
+		err_quit("_db_writeidx: invalid ptr: %d", ptrval);
+	sprintf(db->idxbuf, "%s%c%ld%c%ld\n", key, SEP, db->datoff, SEP, db->datlen);
+	len = strlen(db->idxbuf);
+	if (len < IDXLEN_MIN || len > IDXLEN_MAX)
+		err_dump("_db_writeidx: invalid length");
+	sprintf(asciiptrlen, "%*ld%*d", PTR_SZ, ptrval, IDXLEN_SZ, len);
+	
+	/* if we are appending, we have to lock before doing the lseek and
+	   write to make the two an atomic operation. if we are overwriting
+	   an existing record, we don't have to lock.		*/
+	if (whence == SEEK_END)		/* we are appending */
+		if (writew_lock(db->idxfd, (db->nhash + 1) * PTR_SZ + 1, SEEK_SET, 0) < 0)
+			err_dump("_db_writeidx: writew_lock error");
+	/* position the index file and record the offset. */
+	if ((db->idxoff = lseek(db->idxfd, offset, whence)) == -1)
+		err_dump("_db_writeidx: lseek error");
+	iov[0].iov_base = asciiptrlen;
+	iov[0].iov_len = PTR_SZ + IDXLEN_SZ;
+	iov[1].iov_base = db->idxbuf;
+	iov[1].iov_len = len;
+	if (writev(db->idxfd, &iov[0], 2) != PTR_SZ + IDXLEN_SZ + len)
+		err_dump("_db_writeidx: writev error of index record");
+	
+	if (whence == SEEK_END)
+		if (un_lock(db->idxfd, (db->nhash + 1) * PTR_SZ + 1, SEEK_SET, 0) < 0)
+			err_dump("_db_writeidx: un_lock error");
 }
 
 /*
