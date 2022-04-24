@@ -376,7 +376,19 @@ _db_readdat(DB *db)
  */
 int db_delete(DBHANDLE h, const char *key)
 {
+	DB	*db = h;
+	int	rc = 0;		/* assum record will be found */
 	
+	if (_db_find_and_lock(db, key, 1) == 0) {
+		_db_dodelete(db);
+		db->cnt_delok++;
+	} else {
+		rc = -1;	/* not found */
+		db->cnt_delerr++;
+	}
+	if (un_lock(db->idxfd, db->chainoff, SEEK_SET, 1) < 0)
+		err_dump("db_delete: un_lock error");
+	return (rc);
 }
 
 /*
