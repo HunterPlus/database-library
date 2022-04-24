@@ -581,6 +581,11 @@ db_rewind(DBHANDLE h)
 char *
 db_nextrec(DBHANDLE h, char *key)
 {
+	DB	*db = h;
+	char	c;
+	char	*ptr;
 	
+	/* we read lock the free list so that we don't read a record
+	   in the middle of its being deleted.		*/
 }
 
