@@ -279,7 +279,7 @@ _db_readptr(DB *db, off_t offset)
 {
 	char	asciiptr[PTR_SZ + 1];
 	
-	if (lseek(db->idxfd, 0, SEEK_SET) == -1)
+	if (lseek(db->idxfd, offset, SEEK_SET) == -1)
 		err_dump("_db_readptr: lseek error to ptr field");
 	if (read(db->idxfd, asciiptr, PTR_SZ) != PTR_SZ)
 		err_dump("_db_readptr: read error of ptr field");
