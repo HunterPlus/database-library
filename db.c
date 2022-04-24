@@ -387,7 +387,46 @@ int db_delete(DBHANDLE h, const char *key)
 static void
 _db_dodelete(DB *db)
 {
+	int 	i;
+	char	*ptr;
+	off_t	freeptr, saveptr;
 	
+	/* set data buffer and key to all blanks. */
+	for (ptr = db->datbuf, i = 0; i < db->datlen - 1; i++)
+		*ptr++ = SPACE;
+	*ptr = 0;	/* null terminate for _db_datwrite */
+	ptr = db->idxbuf;
+	while (*ptr)
+		*ptr++ = SPACE;
+	
+	/* we have to lock the free list */
+	if (writew_lock(db->idxfd, FREE_OFF, SEEK_SET, 1) < 0)
+		err_dump("_db_dodelete: writew_lock error");
+	
+	/* write the data record with all blanks. */
+	_db_writedat(db, db->datbuf, db->datoff, SEEK_SET);
+	
+	/* read the free list pointer. its value becomes the chain ptr
+	   field of the deleted index record. the means the deleted 
+	   record becomes the head of the free list.	*/
+	freeptr = _db_readptr(db, FREE_OFF);
+	/* save the contents of index record chain ptr,
+	   before its rewritten by _db_writeidx.	*/
+	saveptr = db->ptrval;
+	/* rewrite the index record. this also rewrites the length of the 
+	   index record, the data offset, and the data length, non of which
+	   has changed, but that's OK.		*/
+	_db_writeidx(db, db->idxbuf, db->idxoff, SEEK_SET, freeptr);
+	/* write the new free list pointer. 	*/
+	_db_writeptr(db, FREE_OFF, db->idxoff);
+	
+	/* rewrite the chain ptr that pointed to this record being deleted.
+	   Recall that _db_find_and_lock sets db->ptroff to point to this
+	   chain ptr. we set this chain ptr to the contents of the deleted
+	   record's chain ptr, saveptr.		*/
+	_db_writeptr(db, db->ptroff, saveptr);
+	if (un_lock(db->idxfd, FREE_OFF, SEEK_SET, 1) < 0)
+		err_dump("_db_dodelete: un_lock error");
 }
 
 /*
