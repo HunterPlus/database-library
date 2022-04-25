@@ -540,7 +540,34 @@ _db_writeptr(DB *db, off_t offset, off_t ptrval)
 int
 db_store(DBHANDLE h, const char *key, const char *data, int flag)
 {
+	DB	*db = h;
+	int	rc, keylen, datlen;
+	off_t	ptrval;
 	
+	if (flag != DB_INSERT && flag != DB_REPLACE && flag != DB_STORE) {
+		errno = EINVAL;
+		return (-1);
+	}
+	keylen = strlen(key);
+	datlen = strlen(data) + 1;	/* +1 for newline at end */
+	if (datlen < DATLEN_MIN || datlen > DATLEN_MAX)
+		err_dump("db_store: invalid data length");
+	
+	/* _db_find_and_lock calculates which hash table this new record 
+	   goes into (db->chainoff), regardless of whether it already
+	   exists or not. the following calls to _db_writeptr change the 
+	   hash table entry for this chain to point to the new record.
+	   the new record is added to the front of the hash chain.	*/
+	if (_db_find_and_lock(db, key, 1) < 0) {	/* record not found */
+		if (flag == DB_REPLACE) {
+			rc = -1;
+			db->cnt_stroerr++;
+			errno = ENOENT;		/* error, record does not exist */
+			goto doreturn;
+		}
+		/* _db_find_and_lock locked the hash chain for us; read the chain
+		   ptr to the first index record on hash chain.		*/
+	}
 }
 
 /*
