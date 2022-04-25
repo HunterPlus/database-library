@@ -550,7 +550,42 @@ db_store(DBHANDLE h, const char *key, const char *data, int flag)
 static int
 _db_findfree(DB *db, int keylen, int datlen)
 {
+	int	rc;
+	off_t	offset, nextoffset, saveoffset;
 	
+	/* Lock the free list */
+	if (writew_lock(db->idxfd, FREE_OFF, SEEK_SET, 1) < 0)
+		err_dump("_db_findfree: writew_lock error");
+	
+	/* read the free list pointer.	*/
+	saveoffset = FREE_OFF;
+	offset = _db_readptr(db, saveoffset);
+	while (offset != 0) {
+		nextoffset = _db_readidx(db, offset);
+		if (strlen(db->idxbuf) == keylen && db->datlen == datlen)
+			break;		/* found a match */
+		saveoffset = offset;
+		offset = nextoffset;
+	}
+	if (offset == 0)
+		rc = -1;	/* no match found */
+	else {
+		/* found a free record with matching sizes.
+		   the index record was read in by _db_readidx above,
+		   which sets db->ptrval. Also, saveoffset points to
+		   the chain ptr that pointed to this empty record on
+		   the free list. we set this chain ptr to db->ptrval,
+		   which removes the empty record from the free list.	*/
+		_db_writeptr(db, saveoffset, db->ptrval);
+		rc = 0;
+		/* notice also that _db_readidx set both db->idxoff
+		   and db->datoff. this is used by the caller, db->store,
+		   to write the new index record and data record.	*/
+	}
+	/* unlock the free list.	*/
+	if (un_lock(db->idxfd, FREE_OFF, SEEK_SET, 1) < 0)
+		err_dump("_db_findfree: un_lock error");
+	return (rc);
 }
 
 /*
