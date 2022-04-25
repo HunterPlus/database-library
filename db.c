@@ -567,7 +567,61 @@ db_store(DBHANDLE h, const char *key, const char *data, int flag)
 		}
 		/* _db_find_and_lock locked the hash chain for us; read the chain
 		   ptr to the first index record on hash chain.		*/
+		ptrval = _db_readptr(db, db->chainoff);
+		if (_db_findfree(db, keylen, datlen) < 0) {
+			/* can't find an empty record big enough. Append the new
+			   record to the ends of the index and data file.	*/
+			_db_writedat(db, data, 0, SEEK_END);
+			_db_writeidx(db, key, 0, SEEK_END, ptrval);
+			
+			/* db->idxoff was set by _db_writeidx. the new record goes
+			   to the front of the hash chain.	*/
+			_db_writeptr(db, db->chainoff, db->idxoff);
+			_db->cnt_stor1++;
+		} else {
+			/* reuse an empty record. _db_findfree remove it from the
+			   free list and set both db->datoff and db->idxoff.
+			   reuse record goes to the front of of the hash chain.	*/
+			_do_writedat(db, data, db->datoff, SEEK_SET);
+			_do_writeidx(db, key, db->idxoff, SEEK_SET, ptrval);
+			_do_writeptr(db, db->chainoff, db->idxoff);
+			db->cnt_stor2++;
+		}
+	} else {	/* record found */
+		if (flag == DB_INSERT) {
+			rc = 1;		/* error, record already in db */
+			db->cnt_storerr++;
+			goto doreturn;
+		}
+		
+		/* we are replacing an existing record. we know the new key
+		   equals the existing key, but we need to check if the data 
+		   records are the same size.	*/
+		if (datlen != db->datlen) {
+			_db_dodelete(db);	/* delete the existing record */
+			
+			/* reread the chain ptr in the hash table
+			   (it may change with the deletion).	*/
+			ptrval = _db_readptr(db, db->chainoff);
+			
+			/* append new index and data records to end of files.	*/
+			_db_writedat(db, data, 0, SEEK_END);
+			_db_writeidx(db, key, 0, SEEK_END, ptrval);
+			
+			/* new record goes to the front of the hash chain.	*/
+			_db_writeptr(db, db->chainoff, db->idxoff);
+			db->cnt_stor3++;
+		} else {
+			/* same size data, just replace data record.	*/
+			_db_writedat(db, data, db->datoff, SEEK_SET);
+			db->cnt_stor4++;
+		}
 	}
+	rc = 0;		/* OK */
+doreturn:		/* unlock hash chain locked by _db_find_and_lock	*/
+	if (un_lock(db->idxfd, db->chainoff, SEEK_SET, 1) < 0)
+		err_dump("db_store: un_lock error");
+	return (rc);	
 }
 
 /*
