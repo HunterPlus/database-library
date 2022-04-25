@@ -304,7 +304,7 @@ _db_readidx(DB *db, off_t offset)
 	/* position index file and record the offset. db_nextrec calls us with 
 	   offset = 0, meaning read from current offset.
 	   we still need to call lseek to record the current offset.	*/
-	if ((db->idxoff = lseek(db->idxfd, offset, offset == 0 ? SEEK_CURR : SEEK_SET)) == -1)
+	if ((db->idxoff = lseek(db->idxfd, offset, offset == 0 ? SEEK_CUR : SEEK_SET)) == -1)
 		err_dump("_db_readidx: lseek error");
 	
 	/* read the ascii chain ptr and the length at the front of the index record.
