@@ -342,7 +342,7 @@ _db_readidx(DB *db, off_t offset)
 	if ((ptr2 = strchr(ptr1, SEP)) == NULL)
 		err_dump("_db_readidx: missing second separator");
 	ptr2++ = 0;		/* replace SEP with null */
-	if (strchr(ptr2, SET) != NULL)
+	if (strchr(ptr2, SEP) != NULL)
 		err_dump("_db_readidx: too many separators");
 	
 	/* get the starting offset and length of the data record. */
